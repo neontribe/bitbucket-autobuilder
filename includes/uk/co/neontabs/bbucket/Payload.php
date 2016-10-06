@@ -13,4 +13,8 @@ class Payload {
     return $this->payload['repository']['full_name'];
   }
 
+  public function getPR() {
+    return $this->payload['pullrequest']['links']['html']['href'];
+  }
+
 }

@@ -63,8 +63,14 @@ foreach ($last_log as $line) {
 }
 
 // Tag the merged repo.
+if (!$bump) {
+  // No bump specified.  Exit
+  syslog(LOG_WARNING, basename(__FILE__) . ': No bump specified in PR ' . $payload->getPR());
+  exit(1);
+}
+$cmd = sprintf('drush -C %s ntmc . %s', $repo_target, $bump);
 
-
+echo $cmd . "\n";
 print_r($bump . "\n");
 print_r($brands);
 
