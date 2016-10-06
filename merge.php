@@ -2,6 +2,7 @@
 
 use uk\co\neontabs\bbucket\Git;
 use uk\co\neontabs\bbucket\Payload;
+use uk\co\neontabs\bbucket\Makefile;
 
 include 'autoload.php';
 /*
@@ -62,17 +63,22 @@ foreach ($last_log as $line) {
     }
 }
 
+$bump = 'patch';
+$brands = array('zz');
 // Tag the merged repo.
 if (!$bump) {
   // No bump specified.  Exit
   syslog(LOG_WARNING, basename(__FILE__) . ': No bump specified in PR ' . $payload->getPR());
   exit(1);
 }
-$cmd = sprintf('drush -C %s ntmc . %s', $repo_target, $bump);
 
-echo $cmd . "\n";
-print_r($bump . "\n");
-print_r($brands);
+$cmd_ntmc = sprintf('drush ntmc %s %s --allow-empty', $repo_target, $bump);
+exec($cmd_ntmc);
+
+$cmd_get_tag = sprintf('git -C %s describe --abbrev=0 --tags', $repo_target);
+echo $cmd_get_tag . "\n";
+$new_tag = exec($cmd_get_tag);
+echo $new_tag . "\n";
 
 # Checkout/clone ntdr-pas
 $ntdr_full_name = _NTDRPAS_REPO;
@@ -82,9 +88,14 @@ $ntdr_url = sprintf('git@%s:%s', _GIT_HUB, $ntdr_full_name);
 $ntdr_git = new Git($ntdr_url, $ntdr_target);
 $ntdr_git->createPullClone();
 
+print_r($brands);
 # For each Brand
 foreach ($brands as $brand) {
+  echo "\t$brand\n";
   # Update the make file
-  $brand_file = $ntdr_target . '/files/' . $brand . '.make';
-  echo $brand_file . "\n";
+  $brand_file = new Makefile($ntdr_target . '/files/' . $brand . '.make');
+  $brand_file->replace(basename($repo_full_name), $new_tag);
+  $brand_file->save();
+  $ntdr_git->commit();
+  $ntdr_git->push('master');
 }
