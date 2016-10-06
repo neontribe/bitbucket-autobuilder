@@ -14,6 +14,7 @@ class Git {
 
   public function __construct($url, $target) {
     $this->url = $url;
+    $this->target = $target;
   }
 
   /**
@@ -25,9 +26,15 @@ class Git {
   public function createPullClone() {
     $git_folder = $this->target . '/' . '.git';
 
+    $parent_dir = dirname($this->target);
+    if (!file_exists($parent_dir)) {
+      mkdir($parent_dir, 0755, TRUE);
+    }
+
     if (!file_exists($this->target)) {
       // clone new version
       $cmd_clone = "git clone $this->url $this->target";
+      echo $cmd_clone . "\n";
       exec($cmd_clone);
     }
     elseif (file_exists($this->target) && file_exists($git_folder)) {

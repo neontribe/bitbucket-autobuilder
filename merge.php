@@ -3,6 +3,7 @@
 use uk\co\neontabs\bbucket\Git;
 use uk\co\neontabs\bbucket\Payload;
 
+include 'autoload.php';
 /*
 
 $fh=fopen("post-$date.log", w);
@@ -25,20 +26,21 @@ fwrite($fh, print_r($payload, TRUE));
 fclose($fh);
 
 define('_AUTOTAG_ROOT', '/var/tmp/autotag/');
-define('_GIT_SERVER', 'bitbucket.org');
+define('_BIT_BUCKET', 'bitbucket.org');
+define('_GIT_HUB', 'github.com');
 define('_NTDRPAS_REPO', 'neontribe/ntdr-pas');
 
 if (!file_exists(_AUTOTAG_ROOT)) {
-    mkdir(_AUTOTAG_ROOT);
+    mkdir(_AUTOTAG_ROOT, 0755, TRUE);
 }
 
 # $payload = json_decode(file_get_contents('php://input'));
 $payload = new Payload(file_get_contents('payload.json'));
 
 // We know this is a merge so get the repo name.
-$repo_full_name = $payload['repository']['full_name'];
-$repo_url = sprintf('git@%s/%s.git', _GIT_SERVER, $repo_full_name);
+$repo_full_name = $payload->getFullName();
 $repo_target = _AUTOTAG_ROOT . '/' . $repo_full_name;
+$repo_url = sprintf('git@%s:%s', _BIT_BUCKET, $repo_full_name);
 
 $repo_git = new Git($repo_url, $repo_target);
 $repo_git->createPullClone();
@@ -60,15 +62,23 @@ foreach ($last_log as $line) {
     }
 }
 
+// Tag the merged repo.
 
+
+print_r($bump . "\n");
 print_r($brands);
 
-//# Checkout/clone ntdr-pas
-//$ntdr_root_folder = creatClone(_NTDRPAS_REPO, 'github.com');
-//# For each Brand
-//foreach ($brands as $brand) {
-//    # Update the make file
-//    $brand_file = $ntdr_root_folder . '/files/' . $brand . '.make';
-//    $makefile = make_parse_info_file($brand_file);
-//    print_r($makefile);
-//}
+# Checkout/clone ntdr-pas
+$ntdr_full_name = _NTDRPAS_REPO;
+$ntdr_target = _AUTOTAG_ROOT . '/' . $ntdr_full_name;
+$ntdr_url = sprintf('git@%s:%s', _GIT_HUB, $ntdr_full_name);
+
+$ntdr_git = new Git($ntdr_url, $ntdr_target);
+$ntdr_git->createPullClone();
+
+# For each Brand
+foreach ($brands as $brand) {
+  # Update the make file
+  $brand_file = $ntdr_target . '/files/' . $brand . '.make';
+  echo $brand_file . "\n";
+}

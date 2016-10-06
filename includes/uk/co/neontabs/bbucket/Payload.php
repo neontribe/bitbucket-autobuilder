@@ -9,4 +9,8 @@ class Payload {
     $this->payload = json_decode($payload, TRUE);
   }
 
+  public function getFullName() {
+    return $this->payload['repository']['full_name'];
+  }
+
 }
