@@ -1,0 +1,11 @@
+{
+    "name": "neontribe/bitbucket-autobuilder",
+    "description": "Take a paylod from bitbucket, post merge, and tags the associated repo.",
+    "authors": [
+        {
+            "name": "Toby Batch",
+            "email": "tobias@neontribe.co.uk"
+        }
+    ],
+    "require": {}
+}
