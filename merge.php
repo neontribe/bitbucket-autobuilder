@@ -72,13 +72,16 @@ if (!$bump) {
   exit(1);
 }
 
+syslog(LOG_INFO, basename(__FILE__) . ': Brands = ' . implode(', ', $brands));
+syslog(LOG_INFO, basename(__FILE__) . ': Bump = ' . $bump);
+
 $cmd_ntmc = sprintf('drush ntmc %s %s --allow-empty', $repo_target, $bump);
 exec($cmd_ntmc);
 
 $cmd_get_tag = sprintf('git -C %s describe --abbrev=0 --tags', $repo_target);
-echo $cmd_get_tag . "\n";
+syslog(LOG_INFO, basename(__FILE__) . ': Get Tag = ' . $cmd_get_tag);
 $new_tag = exec($cmd_get_tag);
-echo $new_tag . "\n";
+syslog(LOG_INFO, basename(__FILE__) . ': New Tag = ' . $new_tag);
 
 # Checkout/clone ntdr-pas
 $ntdr_full_name = _NTDRPAS_REPO;
@@ -91,11 +94,13 @@ $ntdr_git->createPullClone();
 print_r($brands);
 # For each Brand
 foreach ($brands as $brand) {
-  echo "\t$brand\n";
   # Update the make file
-  $brand_file = new Makefile($ntdr_target . '/files/' . $brand . '.make');
+  $makefile = $ntdr_target . '/files/' . $brand . '.make';
+  syslog(LOG_INFO, basename(__FILE__) . ': Pushed to ' . $brand);
+  $brand_file = new Makefile($makefile);
   $brand_file->replace(basename($repo_full_name), $new_tag);
   $brand_file->save();
-  $ntdr_git->commit();
-  $ntdr_git->push('master');
+  $ntdr_git->commit('Update make file for ' . $brand);
+  $ntdr_git->push();
+  syslog(LOG_INFO, basename(__FILE__) . ': Pushed to ' . $brand);
 }
