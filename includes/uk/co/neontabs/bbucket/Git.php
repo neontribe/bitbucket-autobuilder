@@ -50,13 +50,35 @@ class Git {
   }
 
   public function lastLog($count = 1) {
-    $cmd_last_log = sprintf(
+    $cmd = sprintf(
       "git -C %s log --name-status -n %d", $this->target, $count
     );
-    $last_log = array();
-    exec($cmd_last_log, $last_log);
+    $output = array();
+    exec($cmd, $output);
 
-    return $last_log;
+    return $output;
+  }
+
+  public function commit($msg) {
+    $cmd = sprintf(
+      "git -C %s commit -a --allow-empty -m '%s'", $this->target, $msg
+    );
+    syslog(LOG_INFO, basename(__FILE__) . ': ' . __METHOD__ . ': ' . $cmd);
+    $output = array();
+    exec($cmd, $output);
+
+    return $output;
+  }
+
+  public function push($branch = 'master') {
+    $cmd = sprintf(
+      "git -C %s push origin %s", $this->target, $branch
+    );
+    syslog(LOG_INFO, basename(__FILE__) . ': ' . __METHOD__ . ':  ' . $cmd);
+    $output = array();
+    exec($cmd, $output);
+
+    return $output;
   }
 
 }
