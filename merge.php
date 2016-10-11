@@ -63,8 +63,6 @@ foreach ($last_log as $line) {
     }
 }
 
-$bump = 'patch';
-$brands = array('zz');
 // Tag the merged repo.
 if (!$bump) {
   // No bump specified.  Exit
@@ -91,7 +89,6 @@ $ntdr_url = sprintf('git@%s:%s', _GIT_HUB, $ntdr_full_name);
 $ntdr_git = new Git($ntdr_url, $ntdr_target);
 $ntdr_git->createPullClone();
 
-print_r($brands);
 # For each Brand
 foreach ($brands as $brand) {
   # Update the make file
