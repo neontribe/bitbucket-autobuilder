@@ -1,0 +1,3 @@
+[submodule "neontabs"]
+	path = neontabs
+	url = git@bitbucket.org:neontabs/neontabs.git
