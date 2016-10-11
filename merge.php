@@ -35,19 +35,23 @@ if (!file_exists(_AUTOTAG_ROOT)) {
     mkdir(_AUTOTAG_ROOT, 0755, TRUE);
 }
 
-# $payload = json_decode(file_get_contents('php://input'));
-$payload = new Payload(file_get_contents('payload.json'));
+$payload = new Payload(file_get_contents('php://input'));
+# $payload = new Payload(file_get_contents('payload.json'));
 
 // We know this is a merge so get the repo name.
 $repo_full_name = $payload->getFullName();
 $repo_target = _AUTOTAG_ROOT . '/' . $repo_full_name;
 $repo_url = sprintf('git@%s:%s', _BIT_BUCKET, $repo_full_name);
 
+syslog(LOG_INFO, basename(__FILE__) . ': repo_url = ' . $repo_url);
+
 $repo_git = new Git($repo_url, $repo_target);
 $repo_git->createPullClone();
 
 // Grab last commit message
 $last_log = $repo_git->lastLog(2);
+
+syslog(LOG_INFO, basename(__FILE__) . ': lastlog = ' . implode(", ", $last_log));
 
 # Hunt the log for the first instances of BUM
 $bump = FALSE;
@@ -61,6 +65,14 @@ foreach ($last_log as $line) {
         $_brands = trim(substr($_line, strpos($_line, ':') + 1));
         $brands = explode(',', $_brands);
     }
+}
+
+syslog(LOG_INFO, basename(__FILE__) . ': bump = ' . $bump);
+syslog(LOG_INFO, basename(__FILE__) . ': brands = ' . implode(", ", $brands));
+
+if (!in_array('zz', $brands)) {
+    syslog(LOG_ERR, basename(__FILE__) . ': INVALID BRANDS = ' . implode(', ', $brands));
+    exit(1);
 }
 
 // Tag the merged repo.
@@ -89,6 +101,7 @@ $ntdr_url = sprintf('git@%s:%s', _GIT_HUB, $ntdr_full_name);
 $ntdr_git = new Git($ntdr_url, $ntdr_target);
 $ntdr_git->createPullClone();
 
+print_r($brands);
 # For each Brand
 foreach ($brands as $brand) {
   # Update the make file
