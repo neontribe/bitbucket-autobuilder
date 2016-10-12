@@ -17,4 +17,11 @@ class Payload {
     return $this->payload['pullrequest']['links']['html']['href'];
   }
 
+  public function getState() {
+    if (isset($this->payload['pullrequest']['state'])) {
+        return $this->payload['pullrequest']['state'];
+    }
+
+    return FALSE;
+  }
 }
