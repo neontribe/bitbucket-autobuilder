@@ -5,6 +5,7 @@ use uk\co\neontabs\bbucket\Payload;
 use uk\co\neontabs\bbucket\Makefile;
 
 include 'autoload.php';
+require_once __DIR__ . '/neontabs/nt_util/nt_util.opt.inc';
 /*
 
 $fh=fopen("post-$date.log", w);
