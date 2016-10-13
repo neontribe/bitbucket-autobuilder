@@ -107,10 +107,12 @@ foreach ($last_log as $line) {
 debug_out(basename(__FILE__) . ': bump = ' . $bump, LOG_INFO);
 debug_out(basename(__FILE__) . ': brands = ' . implode(", ", $brands), LOG_INFO);
 
+/*
 if (!in_array('zz', $brands)) {
   debug_out(basename(__FILE__) . ': INVALID BRANDS = ' . implode(', ', $brands), LOG_ERR);
   exit(1);
 }
+*/
 
 // Tag the merged repo.
 if (!$bump) {
@@ -141,7 +143,6 @@ $ntdr_url = sprintf('git@%s:%s', _GIT_HUB, $ntdr_full_name);
 $ntdr_git = new Git($ntdr_url, $ntdr_target);
 $ntdr_git->createPullClone();
 
-print_r($brands);
 # For each Brand
 foreach ($brands as $brand) {
   # Update the make file
