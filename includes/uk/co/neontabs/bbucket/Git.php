@@ -17,6 +17,14 @@ class Git {
     $this->target = $target;
   }
 
+  function getUrl() {
+    return $this->url;
+  }
+
+  function getTarget() {
+    return $this->target;
+  }
+
   /**
    * Create or Pull fresh master changes.
    *
@@ -47,6 +55,16 @@ class Git {
       $msg = sprintf('Unable to clone %s to %s.', $this->url, $this->target);
       throw new \RuntimeException($msg);
     }
+  }
+
+  public function branches() {
+    $cmd = sprintf(
+      "git -C %s branch -a", $this->target
+    );
+    $output = array();
+    exec($cmd, $output);
+
+    return $output;
   }
 
   public function lastLog($count = 1) {
