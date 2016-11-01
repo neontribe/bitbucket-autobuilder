@@ -20,8 +20,8 @@ function cloneFromGithub($full_name) {
 $UID = time(TRUE);
 
 $date = date('Y-m-d.H:i:s');
-# $payload = file_get_contents('php://input');
-$payload = file_get_contents('pr-create.log');
+$payload = file_get_contents('php://input');
+// $payload = file_get_contents('pr-create.log');
 $fname = "pr-create-$date.log";
 $fh=fopen($fname, 'w');
 fwrite($fh, print_r($payload, TRUE));
