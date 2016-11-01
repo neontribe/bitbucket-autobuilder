@@ -91,14 +91,23 @@ if (strpos($description, 'BUILD') !== FALSE) {
   }
   $_makefile = sprintf('%s/%s/%s.make', _WEB_ROOT, $_brandcode, $ticket);
   file_put_contents($_makefile, $makefile->dump(TRUE));
-  $cmd = 'drush make --working-copy ' . $no_core . $_makefile . ' ' . $build_taget;
-  printf("%s\n", $cmd);
-  printf("Building drupal from %s to %s\n", $_makefile, $build_taget);
-  exec($cmd);
 
-  $cmd = sprintf(
-    'ansible-playbook --limit=%s_live  -i %s/inventory/cottage-servers --extra-vars="db=%s local=%s mysql_root_pw=%s" --tags=filesync,db %s/pull.yml', $_brandcode, $ntdr_git->getTarget(), $ticket, $build_taget, _MYSQL_ROOT_PASS, $ntdr_git->getTarget()
+  // Now we have a brandcode, a make file and a ticket number, ($brandcode, $_makefile, $ticket).
+  // So we now call the jenkins with those parameters.
+  $data = array(
+      'json' => '{"parameter": [{"name":"brandcode", "value":"' . $_brandcode . '"}, {"name":"ticket", "value":"' . $ticket . '"}, {"name":"makefile", "value":"' . $_makefile . '"}]}'
   );
-  echo "\n\n" . $cmd . "\n\n";
-  exec($cmd);
+  $curl = curl_init('https://jenkins.neontribe.org/job/_build_pr/build');
+  curl_setopt($curl, CURLOPT_POST, true);
+  curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_USERPWD, "jenkins:" . _JENKINS_PASS);
+  curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+  $output = curl_exec($curl);
+  $info = curl_getinfo($curl);
+  curl_close($curl);
+  echo "\n\n" . $output . "\n\n";
+}
+else {
+    printf("Build directive not found\n");
 }
