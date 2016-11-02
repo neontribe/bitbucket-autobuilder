@@ -89,6 +89,7 @@ if (strpos($description, 'BUILD:') !== FALSE) {
         }
       }
     }
+  }
 
     // Build out this Ticket
     $no_core = '';
