@@ -69,6 +69,7 @@ if (strpos($description, 'BUILD:') !== FALSE) {
   $_brandcode = array_shift($elements);
   $ticket = $_brandcode . '-' . array_shift($elements);
 
+  $makefiles = array();
   foreach ($brands as $brandcode) {
     $makefile = new Makefile($ntdr_git->getTarget() . '/files/' . $_brandcode . '.make');
     printf("Sourcing make file from %s\n", $makefile->getMakefile());
@@ -89,21 +90,23 @@ if (strpos($description, 'BUILD:') !== FALSE) {
         }
       }
     }
+    $makefiles[$brandcode] = $makefile;
   }
 
+  foreach ($makefiles as $brandcode => $makefile) {
     // Build out this Ticket
     $no_core = '';
-    $build_taget = sprintf('%s/%s/%s', _WEB_ROOT, $_brandcode, $ticket);
+    $build_taget = sprintf('%s/%s/%s', _WEB_ROOT, $brandcode, $ticket);
     if (file_exists($build_taget)) {
       $no_core = '--no-core ';
     }
-    $_makefile = sprintf('%s/%s/%s.make', _WEB_ROOT, $_brandcode, $ticket);
+    $_makefile = sprintf('%s/%s/%s.make', _WEB_ROOT, $brandcode, $ticket);
     file_put_contents($_makefile, $makefile->dump(TRUE));
 
     // Now we have a brandcode, a make file and a ticket number, ($brandcode, $_makefile, $ticket).
     // So we now call the jenkins with those parameters.
     $data = array(
-      'json' => '{"parameter": [{"name":"brandcode", "value":"' . $_brandcode . '"}, {"name":"ticket", "value":"' . $ticket . '"}, {"name":"makefile", "value":"' . $_makefile . '"}]}'
+      'json' => '{"parameter": [{"name":"brandcode", "value":"' . $brandcode . '"}, {"name":"ticket", "value":"' . $ticket . '"}, {"name":"makefile", "value":"' . $_makefile . '"}]}'
     );
     $curl = curl_init('https://jenkins.neontribe.org/job/_build_pr/build');
     curl_setopt($curl, CURLOPT_POST, true);
