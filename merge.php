@@ -63,6 +63,7 @@ if (!file_exists(_AUTOTAG_ROOT)) {
 }
 
 $payload = new Payload(file_get_contents('php://input'));
+file_put_contents('/tmp/payload.json', $payload);
 # $payload = new Payload(file_get_contents('payload.json'));
 
 $state = $payload->getState();

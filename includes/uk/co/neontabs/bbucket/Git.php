@@ -17,12 +17,22 @@ class Git {
     $this->target = $target;
   }
 
-  function getUrl() {
+  public function getUrl() {
     return $this->url;
   }
 
-  function getTarget() {
+  public function getTarget() {
     return $this->target;
+  }
+
+  public static function cloneFromGithub($full_name) {
+    $full_name = _NTDRPAS_REPO;
+    $target = _AUTOTAG_ROOT . '/' . $full_name;
+    $url = sprintf('git@%s:%s', _GIT_HUB, $full_name);
+    $git = new Git($url, $target);
+    $git->createPullClone();
+
+    return $git;
   }
 
   /**
