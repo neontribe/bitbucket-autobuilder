@@ -55,7 +55,7 @@ if (strpos($description, 'BUILD') !== FALSE) {
     $_brandcode = 'zz';
   }
   else {
-    $_brandcode = $brandcode;
+    $_brandcode = strtolower($brandcode);
   }
 
   $makefile = new Makefile($ntdr_git->getTarget() . '/files/' . $_brandcode . '.make');
@@ -89,7 +89,10 @@ if (strpos($description, 'BUILD') !== FALSE) {
   if (file_exists($build_taget)) {
     $no_core = '--no-core ';
   }
-  $_makefile = sprintf('%s/%s/%s.make', _WEB_ROOT, $_brandcode, $ticket);
+  $_makefile = sprintf('%s/%s/%s.make', _MAKEFILE_ROOT, $_brandcode, $ticket);
+  if (!is_dir(dirname($_makefile))) {
+      mkdir(dirname($_makefile), 0775, TRUE);
+  }
   file_put_contents($_makefile, $makefile->dump(TRUE));
 
   // Now we have a brandcode, a make file and a ticket number, ($brandcode, $_makefile, $ticket).

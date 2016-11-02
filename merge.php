@@ -47,11 +47,11 @@ function debug_out($msg, $lvl = LOG_INFO) {
 
 $date = date('Y-m-d.H:i:s');
 $payload = file_get_contents('php://input');
-#$fname = "payload-$date.log";
-#debug_out(basename(__FILE__) . ': Writting data to ' . $fname);
-#$fh=fopen($fname, 'w');
-#fwrite($fh, print_r($payload, TRUE));
-#fclose($fh);
+$fname = "payload-$date.log";
+debug_out(basename(__FILE__) . ': Writting data to ' . $fname);
+$fh=fopen($fname, 'w');
+fwrite($fh, print_r($payload, TRUE));
+fclose($fh);
 
 define('_AUTOTAG_ROOT', '/var/tmp/autotag/');
 define('_BIT_BUCKET', 'bitbucket.org');
