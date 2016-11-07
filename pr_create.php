@@ -7,6 +7,11 @@ use uk\co\neontabs\bbucket\Makefile;
 include 'autoload.php';
 require_once __DIR__ . '/config.php';
 
+function pr_debug($message) {
+    echo $message;
+    syslog(LOG_INFO, trim($message));
+}
+
 function cloneFromGithub($full_name) {
   $full_name = _NTDRPAS_REPO;
   $target = _AUTOTAG_ROOT . '/' . $full_name;
@@ -34,23 +39,30 @@ $description = $pull_request['description'];
 if (strpos($description, 'BUILD:') !== FALSE) {
   $brands = array();
 
-  $lines = explode($description, "\n");
+  $lines = explode("\n", $description);
   foreach ($lines as $line) {
-    $_line = substr($line, strpos($line, ':') + 1);
-    $brands = explode($_line, ',');
+    if (strpos($line, 'BUILD:') === 0) {
+      $_line = substr($line, strpos($line, ':') + 1);
+      pr_debug(sprintf("_Line: %s\n", $_line));
+      $brands = explode(',', $_line);
+    }
   }
 
-  printf("Build directive found\n");
+  foreach ($brands as $index => $brand) {
+    $brands[$index] = trim($brand);
+  }
+
+  pr_debug(sprintf("Build directive found for %s\n", json_encode($brands)));
 
   # Checkout/clone ntdr-pas
   $ntdr_git = Git::cloneFromGithub(_NTDRPAS_REPO);
 
   $_repos = array();
   foreach ($repos as $url) {
-    printf("\tChecking repo %s\n", $url);
+    pr_debug(sprintf("\tChecking repo %s\n", $url));
     $repo_full_name = substr($url, strpos($url, ':') + 1);
     $target = _AUTOTAG_ROOT . $repo_full_name;
-    printf("\tFetching/cloning repo into %s\n", $target);
+    pr_debug(sprintf("\tFetching/cloning repo into %s\n", $target));
     $git = new Git($url, $target);
     $git->createPullClone();
     $_repos[] = $git;
@@ -61,7 +73,7 @@ if (strpos($description, 'BUILD:') !== FALSE) {
   // Get the ticket number, I could use a regex but that's not as easy as it seems.
   $elements = explode('-', $branch_name);
   if (count($elements) < 3) {
-    echo "No valid ticket number fount in " . $branch_name . "\n";
+    pr_debug(sprintf("No valid ticket number fount in %s\n", $branch_name));
     exit();
   }
 
@@ -71,20 +83,20 @@ if (strpos($description, 'BUILD:') !== FALSE) {
 
   $makefiles = array();
   foreach ($brands as $brandcode) {
-    $makefile = new Makefile($ntdr_git->getTarget() . '/files/' . $_brandcode . '.make');
-    printf("Sourcing make file from %s\n", $makefile->getMakefile());
+    $makefile_src = $ntdr_git->getTarget() . '/files/' . $brandcode . '.make';
+    pr_debug(sprintf("Sourcing make file from %s\n", $makefile_src));
+    $makefile = new Makefile($makefile_src);
 
-    printf("Processing ticket id %s\n", $ticket);
+    pr_debug(sprintf("Processing ticket id %s\n", $ticket));
     // Scan bit buckets for other tickets that match this issue.
     foreach ($_repos as $repo) {
       $git = $repo;
       $branches = $git->branches();
       foreach ($branches as $branch) {
-        printf("\t\tChecking branch %s\n", $branch);
         $tid_start_index = strpos($branch, $ticket);
         if ($tid_start_index !== FALSE) {
           // This repo needs a build
-          printf("\t\t\tMatch found\n");
+          pr_debug(sprintf("\t\t\tMatch found\n"));
           $branch_name = substr($branch, $tid_start_index);
           $makefile->replace(basename($repo_full_name), $branch_name, FALSE);
         }
@@ -101,6 +113,10 @@ if (strpos($description, 'BUILD:') !== FALSE) {
       $no_core = '--no-core ';
     }
     $_makefile = sprintf('%s/%s/%s.make', _WEB_ROOT, $brandcode, $ticket);
+    $makefile_dir = dirname($_makefile);
+    if (!is_dir($makefile_dir)) {
+      mkdir($makefile_dir, 0775, TRUE);
+    }
     file_put_contents($_makefile, $makefile->dump(TRUE));
 
     // Now we have a brandcode, a make file and a ticket number, ($brandcode, $_makefile, $ticket).
@@ -117,9 +133,10 @@ if (strpos($description, 'BUILD:') !== FALSE) {
     $output = curl_exec($curl);
     $info = curl_getinfo($curl);
     curl_close($curl);
-    echo "\n\n" . $output . "\n\n";
+    pr_debug(sprintf("\n\n%s\n\n", $output));
   }
+  pr_debug("All done\n");
 }
 else {
-    printf("Build directive not found\n");
+    pr_debug(sprintf("Build directive not found\n"));
 }
