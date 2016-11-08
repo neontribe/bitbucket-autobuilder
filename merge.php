@@ -96,11 +96,11 @@ $bump = FALSE;
 $brands = array();
 foreach ($last_log as $line) {
     $_line = trim($line);
-    if (strpos($_line, 'BUMP') === 0) {
-        $bump = trim(substr($_line, strpos($_line, ':') + 1));
+    if (strpos($_line, 'BUMP') !== FALSE) {
+    $bump = trim(substr($_line, strpos($_line, ':') + 1));
     }
-    elseif (strpos($_line, 'BRAND') === 0) {
-        $_brands = trim(substr($_line, strpos($_line, ':') + 1));
+    elseif (strpos($_line, 'BRAND') !== FALSE) {
+    $_brands = trim(substr($_line, strpos($_line, ':') + 1));
         $brands = explode(',', $_brands);
     }
 }
