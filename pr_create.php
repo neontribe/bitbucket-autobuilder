@@ -1,36 +1,25 @@
 <?php
 
-use uk\co\neontabs\bbucket\Git;
 use uk\co\neontabs\bbucket\Payload;
-use uk\co\neontabs\bbucket\Makefile;
 
 include 'autoload.php';
 require_once __DIR__ . '/config.php';
+$url = 'https://jenkins.neontribe.org/job/_build_pr/build';
 
 function pr_debug($message) {
     echo $message;
     syslog(LOG_INFO, trim($message));
 }
 
-function cloneFromGithub($full_name) {
-  $full_name = _NTDRPAS_REPO;
-  $target = _AUTOTAG_ROOT . '/' . $full_name;
-  $url = sprintf('git@%s:%s', _GIT_HUB, $full_name);
-  $git = new Git($url, $target);
-  $git->createPullClone();
-
-  return $git;
-}
-
 $UID = time(TRUE);
 
 $date = date('Y-m-d.H:i:s');
 $payload = file_get_contents('php://input');
-// $payload = file_get_contents('pr-create.log');
 $fname = __DIR__ . "/logs/pr-create-$date.log";
 $fh=fopen($fname, 'w');
 fwrite($fh, print_r($payload, TRUE));
 fclose($fh);
+// $payload = file_get_contents('pr-create.log');
 
 $data = json_decode($payload, TRUE);
 $pull_request = $data['pullrequest'];
@@ -39,6 +28,7 @@ $description = $pull_request['description'];
 if (strpos($description, 'BUILD:') !== FALSE) {
   $brands = array();
 
+  // Get Brands specified.
   $lines = explode("\n", $description);
   foreach ($lines as $line) {
     if (strpos($line, 'BUILD:') === 0) {
@@ -54,22 +44,9 @@ if (strpos($description, 'BUILD:') !== FALSE) {
 
   pr_debug(sprintf("Build directive found for %s\n", json_encode($brands)));
 
-  # Checkout/clone ntdr-pas
-  $ntdr_git = Git::cloneFromGithub(_NTDRPAS_REPO);
-
-  $_repos = array();
-  foreach ($repos as $url) {
-    pr_debug(sprintf("\tChecking repo %s\n", $url));
-    $repo_full_name = substr($url, strpos($url, ':') + 1);
-    $target = _AUTOTAG_ROOT . $repo_full_name;
-    pr_debug(sprintf("\tFetching/cloning repo into %s\n", $target));
-    $git = new Git($url, $target);
-    $git->createPullClone();
-    $_repos[] = $git;
-  }
-
   // Get the branch name
   $branch_name = $pull_request['source']['branch']['name'];
+
   // Get the ticket number, I could use a regex but that's not as easy as it seems.
   $elements = explode('-', $branch_name);
   if (count($elements) < 3) {
@@ -81,55 +58,19 @@ if (strpos($description, 'BUILD:') !== FALSE) {
   $_brandcode = array_shift($elements);
   $ticket = $_brandcode . '-' . array_shift($elements);
 
-  $makefiles = array();
-  foreach ($brands as $brandcode) {
-    $makefile_src = $ntdr_git->getTarget() . '/files/' . $brandcode . '.make';
-    pr_debug(sprintf("Sourcing make file from %s\n", $makefile_src));
-    $makefile = new Makefile($makefile_src);
-
-    pr_debug(sprintf("Processing ticket id %s\n", $ticket));
-    // Scan bit buckets for other tickets that match this issue.
-    foreach ($_repos as $repo) {
-      $git = $repo;
-      $branches = $git->branches();
-      foreach ($branches as $branch) {
-        $tid_start_index = strpos($branch, $ticket);
-        if ($tid_start_index !== FALSE) {
-          // This repo needs a build
-          pr_debug(sprintf("\t\t\tMatch found\n"));
-          $branch_name = substr($branch, $tid_start_index);
-          $makefile->replace(basename($repo_full_name), $branch_name, FALSE);
-        }
-      }
-    }
-    $makefiles[$brandcode] = $makefile;
-  }
-
-  foreach ($makefiles as $brandcode => $makefile) {
-    // Build out this Ticket
-    $no_core = '';
-    $build_taget = sprintf('%s/%s/%s', _WEB_ROOT, $brandcode, $ticket);
-    if (file_exists($build_taget)) {
-      $no_core = '--no-core ';
-    }
-    $_makefile = sprintf('%s/%s/%s.make', _WEB_ROOT, $brandcode, $ticket);
-    $makefile_dir = dirname($_makefile);
-    if (!is_dir($makefile_dir)) {
-      mkdir($makefile_dir, 0775, TRUE);
-    }
-    file_put_contents($_makefile, $makefile->dump(TRUE));
-
-    // Now we have a brandcode, a make file and a ticket number, ($brandcode, $_makefile, $ticket).
+  foreach ($brands as $brand) {
+    // Now we have a brandcode, and a ticket number, ($brandcode, $ticket).
     // So we now call the jenkins with those parameters.
     $data = array(
-      'json' => '{"parameter": [{"name":"brandcode", "value":"' . $brandcode . '"}, {"name":"ticket", "value":"' . $ticket . '"}, {"name":"makefile", "value":"' . $_makefile . '"}]}'
+      'json' => '{"parameter": [{"name":"brandcode", "value":"' . $brand . '"}, {"name":"ticket", "value":"' . $ticket . '"}]}'
     );
-    $curl = curl_init('https://jenkins.neontribe.org/job/_build_pr/build');
+    $curl = curl_init($url);
     curl_setopt($curl, CURLOPT_POST, true);
     curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_USERPWD, "jenkins:" . _JENKINS_PASS);
     curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    pr_debug(sprintf("Build %s with %s\n", $url, json_encode($data)));
     $output = curl_exec($curl);
     $info = curl_getinfo($curl);
     curl_close($curl);
